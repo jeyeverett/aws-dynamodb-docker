@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "npm-run-all --parallel start-server start-db",
+    "start": "set NODE_ENV=development&& npm-run-all --parallel start-server start-db",
     "start-server": "node index.js",
     "start-db": "set DYNAMO_ENDPOINT=http://localhost:8000 && dynamodb-admin"
   },
@@ -14,7 +14,8 @@
   "dependencies": {
     "@aws/dynamodb-data-mapper": "^0.7.3",
     "aws-sdk": "^2.941.0",
-    "express": "^4.17.1"
+    "express": "^4.17.1",
+    "uuid": "^3.3.2"
   },
   "devDependencies": {
     "npm-run-all": "^4.1.5"

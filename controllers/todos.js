@@ -1,29 +1,29 @@
-const fs = require("fs");
+const uuidv4 = require("uuid").v4;
+const mapper = require("../db/dynamo-client");
+const Todo = require("../models/todo");
 
 module.exports.home = (req, res) => {
   return res.send("Hello, world!");
 };
 
-module.exports.getToDos = (req, res) => {
+module.exports.getToDos = async (req, res) => {
   const { showpending: showPending } = req.query;
-
-  fs.readFile("./store/todos.json", "utf-8", (err, data) => {
-    if (err) {
-      return res.status(500).send("Sorry, something went wrong.");
+  const result = [];
+  try {
+    for await (const todo of mapper.scan(Todo)) {
+      if (showPending) {
+        if (todo.complete === false) {
+          result.push(todo);
+        }
+      } else {
+        result.push(todo);
+      }
     }
-
-    const todos = JSON.parse(data);
-
-    if (showPending !== "1") {
-      return res.json({ todos });
-    } else {
-      return res.json({
-        todos: todos.filter((t) => {
-          return t.complete === false;
-        }),
-      });
-    }
-  });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "DynamoDB error" });
+  }
+  return res.status(200).json({ result });
 };
 
 module.exports.putToDos = (req, res) => {
@@ -37,25 +37,6 @@ module.exports.putToDos = (req, res) => {
     }
     return -1;
   };
-
-  fs.readFile("./store/todos.json", "utf-8", (err, data) => {
-    if (err) {
-      return res.status(500).send("Sorry, something went wrong.");
-    }
-
-    let todos = JSON.parse(data);
-    const todoIndex = findTodoById(todos, id);
-
-    if (todoIndex === -1) {
-      return res.status(404).send("Sorry, not found.");
-    }
-
-    todos[todoIndex].complete = true;
-
-    fs.writeFile("./store/todos.json", JSON.stringify(todos), () => {
-      return res.json({ status: "ok" });
-    });
-  });
 };
 
 module.exports.postToDos = (req, res) => {
@@ -63,27 +44,19 @@ module.exports.postToDos = (req, res) => {
     return res.status(400).send("Please enter a name");
   }
 
-  fs.readFile("./store/todos.json", "utf-8", (err, data) => {
-    if (err) {
-      return res.status(500).send("Sorry, something went wrong.");
-    }
+  const todo = new Todo();
+  todo.uuid = uuidv4();
+  todo.name = req.body.name;
+  todo.complete = false;
 
-    const todos = JSON.parse(data);
-    const maxId = Math.max.apply(
-      Math,
-      todos.map((t) => {
-        return t.id;
-      })
-    );
-
-    todos.push({
-      id: maxId + 1,
-      complete: false,
-      name: req.body.name,
+  mapper
+    .put({ item: todo })
+    .then((data) => {
+      console.log(data);
+      return res.status(200).json({ status: "success" });
+    })
+    .catch((err) => {
+      console.log(err);
+      return res.status(500).json({ error: "DynamoDB error" });
     });
-
-    fs.writeFile("./store/todos.json", JSON.stringify(todos), () => {
-      return res.json({ status: "ok" });
-    });
-  });
 };
