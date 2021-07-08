@@ -1,1 +1,1 @@
-A NodeJS application deployed using Docker and AWS DynamoDB and Fargate
+A NodeJS application deployed using Docker, AWS DynamoDB and Fargate

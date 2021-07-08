@@ -26,17 +26,17 @@ module.exports.getToDos = async (req, res) => {
   return res.status(200).json({ result });
 };
 
-module.exports.putToDos = (req, res) => {
-  const { id } = req.params;
+module.exports.putToDos = async (req, res) => {
+  const { uuid } = req.params;
 
-  const findTodoById = (todos, id) => {
-    for (let i = 0; i < todos.length; i++) {
-      if (todos[i].id === parseInt(id)) {
-        return i;
-      }
-    }
-    return -1;
-  };
+  try {
+    const todo = await mapper.get(Object.assign(new Todo(), { uuid }));
+    await mapper.update(todo);
+    return res.status(200).json({ todo });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json(err.name);
+  }
 };
 
 module.exports.postToDos = (req, res) => {
